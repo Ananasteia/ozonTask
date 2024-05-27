@@ -1,38 +1,26 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
+	"AVITOtask/cmd/link_cutback/internal/adapters/repo"
+	"AVITOtask/cmd/link_cutback/internal/api"
+	"AVITOtask/cmd/link_cutback/internal/app"
+	"log"
 	"net/http"
 )
 
-var Links map[Link]string
-
-type Link string
-
-func GetOriginalLink(w http.ResponseWriter, r *http.Request) {
-	jsong, err := io.ReadAll(r.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	r.Context()
-	var newLink Link
-	err = json.Unmarshal(jsong, &newLink)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-}
-func Shorter() {
-
-}
-func ShortLink(w http.ResponseWriter, r *http.Request) {
-
-}
-
 func main() {
-	http.HandleFunc("/", GetOriginalLink).Methods(http.MethodPost)
-	http.HandleFunc("/", ShortLink).Methods(http.MethodGet)
+	db, err := repo.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+	linkApp := app.New(db)
+	linkApi := api.New(linkApp)
+	server := http.Server{Addr: ":8080", Handler: linkApi}
+	log.Fatal(server.ListenAndServe())
 }
